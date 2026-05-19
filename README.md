@@ -10,13 +10,19 @@ A lightweight, self-hostable Discord bot that sends a notification to a designat
 - [Prerequisites](#-prerequisites)
 - [Creating the Discord Bot](#-creating-the-discord-bot)
 - [Installation](#-installation)
+  - [Option A: Clone from GitHub](#option-a-clone-from-github)
+  - [Option B: Install via pip from PyPI](#option-b-install-via-pip-from-pypi)
 - [Configuration](#-configuration)
 - [Running the Bot](#-running-the-bot)
 - [Self-Hosting on Linux with systemd](#-self-hosting-on-linux-with-systemd)
+  - [Running from a Cloned Repo](#running-from-a-cloned-repo)
+  - [Running from a pip Install](#running-from-a-pip-install)
 - [Updating the Bot](#-updating-the-bot)
 - [Project Structure](#-project-structure)
 - [Troubleshooting](#-troubleshooting)
 - [Security](#-security)
+- [Contributing](#-contributing)
+- [License](#-license)
 
 ---
 
@@ -94,14 +100,20 @@ Click **Save Changes**.
 
 ## 🛠️ Installation
 
-### 1. Clone the Repository
+There are two ways to install the bot — cloning the repo directly, or installing it as a package via pip from PyPI. Both approaches are fully supported.
+
+---
+
+### Option A: Clone from GitHub
+
+#### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/yourusername/discord-voice-notifier.git
 cd discord-voice-notifier
 ```
 
-### 2. Create a Virtual Environment
+#### 2. Create a Virtual Environment
 
 A virtual environment keeps the bot's dependencies isolated from the rest of your system:
 
@@ -110,11 +122,66 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Install Dependencies
+#### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
+
+---
+
+### Option B: Install via pip from PyPI
+
+If the package has been published to PyPI, you can install it directly without cloning the repo at all.
+
+#### 1. Create a directory to hold your configuration
+
+```bash
+mkdir ~/discord-bot
+cd ~/discord-bot
+```
+
+#### 2. Create a virtual environment
+
+```bash
+python3 -m venv venv
+```
+
+#### 3. Install the package into the venv
+
+```bash
+venv/bin/pip install discord-voice-notifier
+```
+
+#### 4. Create your `.env` file
+
+```bash
+nano .env
+```
+
+Add your credentials:
+
+```env
+DISCORD_TOKEN=your_bot_token_here
+NOTIFICATION_CHANNEL_ID=your_channel_id_here
+```
+
+Save and close (`Ctrl+X` → `Y` → `Enter`).
+
+#### 5. Run the bot to test it
+
+```bash
+venv/bin/discord-voice-notifier
+```
+
+You should see:
+
+```
+✅ Bot is online — logged in as VoiceNotifier#1234
+📢 Sending notifications to channel ID: 123456789
+```
+
+Press `Ctrl+C` to stop — then follow the [Running from a pip Install](#running-from-a-pip-install) section below to run it permanently as a service.
 
 ---
 
@@ -177,13 +244,19 @@ Press `Ctrl+C` to stop the bot. To run it permanently in the background, follow 
 
 `systemd` is a Linux service manager that will keep your bot running in the background, restart it if it crashes, and start it automatically whenever your server reboots.
 
-### Step 1 — Create the Service File
+The service file differs slightly depending on whether you installed via pip or cloned the repo — follow the relevant section below.
+
+---
+
+### Running from a Cloned Repo
+
+#### Step 1 — Create the Service File
 
 ```bash
 sudo nano /etc/systemd/system/discord-bot.service
 ```
 
-Paste the following, replacing `your_linux_username` and the path with your actual values:
+Paste the following, replacing `your_linux_username` with your actual username (`whoami` if unsure):
 
 ```ini
 [Unit]
@@ -194,6 +267,7 @@ After=network.target
 Type=simple
 User=your_linux_username
 WorkingDirectory=/home/your_linux_username/discord-voice-notifier
+EnvironmentFile=/home/your_linux_username/discord-voice-notifier/.env
 ExecStart=/home/your_linux_username/discord-voice-notifier/venv/bin/python3 bot.py
 Restart=always
 RestartSec=10
@@ -202,9 +276,7 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-Save and close the file.
-
-### Step 2 — Enable and Start the Service
+#### Step 2 — Enable and Start the Service
 
 ```bash
 # Reload systemd so it picks up the new service file
@@ -217,13 +289,73 @@ sudo systemctl enable discord-bot
 sudo systemctl start discord-bot
 ```
 
-### Step 3 — Verify It's Running
+#### Step 3 — Verify It's Running
 
 ```bash
 sudo systemctl status discord-bot
 ```
 
 You should see `Active: active (running)` in green.
+
+---
+
+### Running from a pip Install
+
+#### Step 1 — Create the Service File
+
+```bash
+sudo nano /etc/systemd/system/discord-bot.service
+```
+
+Paste the following, replacing `your_linux_username` with your actual username:
+
+```ini
+[Unit]
+Description=Discord Voice Notification Bot
+After=network.target
+
+[Service]
+Type=simple
+User=your_linux_username
+WorkingDirectory=/home/your_linux_username/discord-bot
+EnvironmentFile=/home/your_linux_username/discord-bot/.env
+ExecStart=/home/your_linux_username/discord-bot/venv/bin/discord-voice-notifier
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+The key differences from the cloned repo version are:
+- `WorkingDirectory` points to the config folder rather than a cloned repo
+- `EnvironmentFile` points to the `.env` file in that config folder
+- `ExecStart` points to the installed CLI command inside the venv rather than a Python script
+
+> ℹ️ Not sure where the command was installed? Run `find ~/discord-bot/venv/bin -name "discord-voice-notifier"` to confirm the exact path.
+
+#### Step 2 — Enable and Start the Service
+
+```bash
+# Reload systemd so it picks up the new service file
+sudo systemctl daemon-reload
+
+# Enable the service to start automatically on boot
+sudo systemctl enable discord-bot
+
+# Start the service now
+sudo systemctl start discord-bot
+```
+
+#### Step 3 — Verify It's Running
+
+```bash
+sudo systemctl status discord-bot
+```
+
+You should see `Active: active (running)` in green.
+
+---
 
 ### Useful Service Commands
 
@@ -240,11 +372,19 @@ You should see `Active: active (running)` in green.
 
 ## 🔄 Updating the Bot
 
-When you push new code to GitHub and want to pull the changes onto your server:
+### If installed from a cloned repo
 
 ```bash
 cd discord-voice-notifier
 git pull
+sudo systemctl restart discord-bot
+```
+
+### If installed via pip
+
+```bash
+cd ~/discord-bot
+venv/bin/pip install --upgrade discord-voice-notifier
 sudo systemctl restart discord-bot
 ```
 
@@ -289,6 +429,10 @@ discord-voice-notifier/
 **Bot goes offline after closing the SSH session**
 - You need to set up the `systemd` service as described in the [Self-Hosting](#-self-hosting-on-linux-with-systemd) section
 - Without it, the bot only runs while your terminal is open
+
+**`command not found: discord-voice-notifier` after pip install**
+- Make sure you are referencing the venv binary directly: `~/discord-bot/venv/bin/discord-voice-notifier`
+- Or confirm the install path with: `find ~/discord-bot/venv/bin -name "discord-voice-notifier"`
 
 **`ModuleNotFoundError: No module named 'discord'`**
 - Make sure your virtual environment is active: `source venv/bin/activate`
