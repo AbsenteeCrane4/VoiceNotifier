@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "discord-voice-notifier"
+version = "1.0.0"
+description = "A Discord bot that notifies when someone joins a voice channel"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "discord.py>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+discord-voice-notifier = "discord_voice_notifier.bot:main"
